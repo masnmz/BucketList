@@ -5,38 +5,51 @@
 //  Created by Mehmet Alp Sönmez on 21/06/2024.
 //
 
+
 import MapKit
 import SwiftUI
 
-struct Location: Identifiable {
-    let id = UUID()
-    var name: String
-    var coordinate: CLLocationCoordinate2D
-}
-
 struct ContentView: View {
-    
-    let locations = [
-        Location(name: "Buckingham Palace", coordinate: CLLocationCoordinate2D(latitude: 51.501, longitude: -0.141)),
-        Location(name: "Tower of London", coordinate: CLLocationCoordinate2D(latitude: 51.508, longitude: -0.076))
-    ]
-    
-    @State private var position = MapCameraPosition.region(MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 51.507222, longitude: -0.1275),
-        span: MKCoordinateSpan(latitudeDelta: 1, longitudeDelta: 1))
+    let startPoisitin = MapCameraPosition.region(
+        MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 56, longitude: -3),
+            span: MKCoordinateSpan(latitudeDelta: 10, longitudeDelta: 10)
+        )
     )
     
+    @State private var viewModel = ViewModel()
+    
     var body: some View {
-        VStack {
-            MapReader { proxy in
-                Map()
-                    .onTapGesture { position in
-                        if let coordinate = proxy.convert(position, from: .local) {
-                            print(coordinate)
-                        }
+        MapReader { proxy in
+            Map(initialPosition: startPoisitin) {
+                ForEach(viewModel.locations) { location in
+                    Annotation(location.name, coordinate: location.coordinate) {
+                        Image(systemName: "star.circle")
+                            .resizable()
+                            .foregroundStyle(.red)
+                            .frame(width: 44, height: 44)
+                            .background(.white)
+                            .clipShape(.circle)
+                            .onLongPressGesture {
+                                viewModel.selectedPlace = location
+                            }
                     }
+                    
+                }
+            }
+            .mapStyle(.hybrid)
+            .onTapGesture { position in
+                if let coordinate = proxy.convert(position, from: .local) {
+                    viewModel.addLocation(at: coordinate)
+                }
+            }
+            .sheet(item: $viewModel.selectedPlace) { place  in
+                EditView(location: place) {
+                    viewModel.update(location: $0)
+                }
             }
         }
+        
     }
     
 }

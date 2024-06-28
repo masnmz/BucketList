@@ -18,38 +18,61 @@ struct ContentView: View {
     )
     
     @State private var viewModel = ViewModel()
-    
     var body: some View {
-        MapReader { proxy in
-            Map(initialPosition: startPoisitin) {
-                ForEach(viewModel.locations) { location in
-                    Annotation(location.name, coordinate: location.coordinate) {
-                        Image(systemName: "star.circle")
-                            .resizable()
-                            .foregroundStyle(.red)
-                            .frame(width: 44, height: 44)
-                            .background(.white)
-                            .clipShape(.circle)
-                            .onLongPressGesture {
-                                viewModel.selectedPlace = location
+        if viewModel.isUnlocked {
+            MapReader { proxy in
+                ZStack(alignment: .bottomTrailing) {
+                    Map(initialPosition: startPoisitin){
+                        
+                        ForEach(viewModel.locations) { location in
+                            Annotation(location.name, coordinate: location.coordinate) {
+                                Image(systemName: "star.circle")
+                                    .resizable()
+                                    .foregroundStyle(.red)
+                                    .frame(width: 44, height: 44)
+                                    .background(.white)
+                                    .clipShape(.circle)
+                                    .onLongPressGesture {
+                                        viewModel.selectedPlace = location
+                                    }
                             }
+                            
+                        }
                     }
-                    
+                    .mapStyle(viewModel.standardView ? .standard : .hybrid)
+                    .onTapGesture { position in
+                        if let coordinate = proxy.convert(position, from: .local) {
+                            viewModel.addLocation(at: coordinate)
+                        }
+                    }
+                    Button( viewModel.standardView ? "Hybrid View" : "Standard View") {
+                        viewModel.changeView()
+                    }
+                    .padding(.horizontal, 10)
+                    .background(.red)
+                    .foregroundStyle(.black)
+                    .clipShape(.capsule)
+                    .shadow(radius: 5)
+                    .sheet(item: $viewModel.selectedPlace) { place  in
+                        EditView(location: place) {
+                            viewModel.update(location: $0)
+                        }
+                    }
                 }
             }
-            .mapStyle(.hybrid)
-            .onTapGesture { position in
-                if let coordinate = proxy.convert(position, from: .local) {
-                    viewModel.addLocation(at: coordinate)
+        } else {
+            Button("Unlock Places", action: viewModel.authenticate)
+                .padding()
+                .background(.blue)
+                .foregroundStyle(.white)
+                .clipShape(.capsule)
+            
+                .alert("Failed Authentication", isPresented: $viewModel.showFailedFaceIdAlert) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text("You cannot use the App without Authentication")
                 }
-            }
-            .sheet(item: $viewModel.selectedPlace) { place  in
-                EditView(location: place) {
-                    viewModel.update(location: $0)
-                }
-            }
         }
-        
     }
     
 }

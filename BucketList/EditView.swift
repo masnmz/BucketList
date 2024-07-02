@@ -16,7 +16,6 @@ struct EditView: View {
     
     var onSave: (Location) -> Void
     
-    
     var body: some View {
         NavigationStack {
             Form {
